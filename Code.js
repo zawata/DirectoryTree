@@ -1,14 +1,12 @@
 //Google Script File
 
-function onTime() {
+function onStart() {
     var rdir = DriveApp.getFolderById("0B2lNnNYG8-MreFhYWnltYmNTZTQ"); //root Directory
-    //var Sdir = DriveApp.getFolderById("0B7Zx326vcGL1MUhheEppcHYzaGs"); //Script Directory
-    //var outTmpName = "UGxlYXNlIERvbid0IFRvdWNo.txt";
     var outFnlName = "00 Lost? Click Here! v2.txt";
-
+    var d = new Date()
+    var update = "Last Updated: " + d.toLocaleString() + "\n"
     var humbleBrag = 'Welcome to the Directory Structure 2.0! \nThis file is updated every 2 hours.(pending) \nCtrl+F is your friend :^)\n\n'
-
-    var blob = Utilities.newBlob(humbleBrag);
+    var blob = Utilities.newBlob(update + humbleBrag);
     dirWalk(blob, rdir, 0)
 
     var delFiles = rdir.getFilesByName(outFnlName)
@@ -26,7 +24,7 @@ function dirWalk(blob, folder, depth) {
     // back out of that folder and start on the next
     // keep track of how deep you are to manage the indentation
 
-    append(blob, space(depth) + "v " + folder.getName());
+    append(blob, space(depth) + "• " + folder.getName());
     var subFolders = folder.getFolders();
     while (subFolders.hasNext()) {
         var elem = subFolders.next();
