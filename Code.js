@@ -1,20 +1,49 @@
-//Google Script File
+//Directory Tree Generator Function
+var version = 'v2.2'
+/* Version history:
+ * v2.2: (current)
+ *   Rewrote Directory walking for Lexicographical Organization
+ *
+ * v2.1:
+ *   Changed text document Generation to Google Doc Generation
+ *
+ * v2.0
+ *   Converted Script to GoogleScript
+ *   Made to run automatically on google drive
+ *
+ * v1.0:
+ *   Python Script that ran in synced google drive folder
+ */
+function onTime() {
+    var mdir = DriveApp.getRootFolder();                               //Drive root Directory
+    var odir = DriveApp.getFolderById("0B2lNnNYG8-MreFhYWnltYmNTZTQ"); //Output Directory
+    var sdir = DriveApp.getFolderById("0B7Zx326vcGL1MUhheEppcHYzaGs"); //script Directory
 
-function onStart() {
-    var rdir = DriveApp.getFolderById("0B2lNnNYG8-MreFhYWnltYmNTZTQ"); //root Directory
-    var outFnlName = "00 Lost? Click Here! v2.txt";
+    var outFnlName = "00 Lost? Click Here!";
     var d = new Date()
-    var update = "Last Updated: " + d.toLocaleString() + "\n"
-    var humbleBrag = 'Welcome to the Directory Structure 2.0! \nThis file is updated every 2 hours.(pending) \nCtrl+F is your friend :^)\n\n'
-    var blob = Utilities.newBlob(update + humbleBrag);
-    dirWalk(blob, rdir, 0)
+    var humbleBrag = 'Welcome to the Directory Structure ' + version + '! \nThis file is updated every hour. \nCtrl+F is your friend :^)\n\n'
+    var update = "Last Updated: " + d.toLocaleString() + "\n\n"
+    var blob = Utilities.newBlob(humbleBrag + update);
+    dirWalk(blob, odir, 0)
 
-    var delFiles = rdir.getFilesByName(outFnlName)
+    //delete previous files in drive
+    var delFiles = odir.getFilesByName(outFnlName)
     while (delFiles.hasNext()) {
         var elem = delFiles.next();
         deleteFile(elem.getId());
     }
-    var outFnl = rdir.createFile(blob.setName(outFnlName));
+    //var outFnl = rdir.createFile(blob.setName(outFnlName));
+    var doc = DocumentApp.create(outFnlName);
+    odir.addFile(DriveApp.getFileById(doc.getId()));
+    var docbody = doc.getBody();
+    docbody.setText(blob.getDataAsString());
+
+    //delete files from my drive added by google docs
+    var delFiles = mdir.getFilesByName(outFnlName)
+    while (delFiles.hasNext()) {
+        var elem = delFiles.next();
+        deleteFile(elem.getId());
+    }
 }
 
 function dirWalk(blob, folder, depth) {
@@ -24,22 +53,39 @@ function dirWalk(blob, folder, depth) {
     // back out of that folder and start on the next
     // keep track of how deep you are to manage the indentation
 
-    append(blob, space(depth) + "• " + folder.getName());
-    var subFolders = folder.getFolders();
-    while (subFolders.hasNext()) {
-        var elem = subFolders.next();
-        dirWalk(blob, elem, depth + 1)
-    }
-    var subFiles = folder.getFiles();
-    while (subFiles.hasNext()) {
-        var file = subFiles.next();
-        append(blob, space(depth + 1) + "- " + file.getName());
-    }
+    append(blob, space(depth) + "  " + folder.getName());
+    var subFolders = itertoarr(folder.getFolders());
+    subFolders = subFolders.sort(
+        function(a, b){
+            var nameA=a.getName().toLowerCase(), nameB=b.getName().toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0; //default return value (no sorting)
+        }
+    );
+    subFolders.forEach(function (item, index, array) {
+        dirWalk(blob, item, depth + 1)
+    });
+
+    var subFiles = itertoarr(folder.getFiles());
+    subFiles = subFiles.sort(
+        function(a, b){
+            var nameA=a.getName().toLowerCase(), nameB=b.getName().toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0; //default return value (no sorting)
+        }
+    );
+    subFiles.forEach(function (item, index, array) {
+        append(blob, space(depth + 1) + "- " + item.getName());
+    });
 }
 
 //              //
 // Dependencies //
 //              //
+
+
 
 function space(level) {
     // generate spaces for indentation (level*4)
@@ -48,6 +94,26 @@ function space(level) {
         retval += "    ";
     }
     return retval;
+}
+
+function itertoarr(FolderIter) {
+    var result = [];
+    while (FolderIter.hasNext()) {
+        result.push(FolderIter.next());
+    }
+    return result;
+}
+
+function makeIterator(array){
+    var nextIndex = 0;
+
+    return {
+       next: function(){
+           return nextIndex < array.length ?
+               {value: array[nextIndex++], done: false} :
+               {done: true};
+       }
+    }
 }
 
 function append(blob, str) {
