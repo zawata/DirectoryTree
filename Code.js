@@ -1,7 +1,10 @@
 //Directory Tree Generator Function
-var version = 'v2.2'
+var version = 'v2.2.1'
 /* Version history:
- * v2.2: (current)
+ * v2.2.1:
+ *   Fix accidental file deletion
+ *
+ * v2.2:
  *   Rewrote Directory walking for Lexicographical Organization
  *
  * v2.1:
@@ -32,11 +35,6 @@ function onTime() {
         var elem = delFiles.next();
         deleteFile(elem.getId());
     }
-    //var outFnl = rdir.createFile(blob.setName(outFnlName));
-    var doc = DocumentApp.create(outFnlName);
-    odir.addFile(DriveApp.getFileById(doc.getId()));
-    var docbody = doc.getBody();
-    docbody.setText(blob.getDataAsString());
 
     //delete files from my drive added by google docs
     var delFiles = mdir.getFilesByName(outFnlName)
@@ -44,6 +42,12 @@ function onTime() {
         var elem = delFiles.next();
         deleteFile(elem.getId());
     }
+
+    //var outFnl = rdir.createFile(blob.setName(outFnlName));
+    var doc = DocumentApp.create(outFnlName);
+    odir.addFile(DriveApp.getFileById(doc.getId()));
+    var docbody = doc.getBody();
+    docbody.setText(blob.getDataAsString());
 }
 
 function dirWalk(blob, folder, depth) {
