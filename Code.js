@@ -1,6 +1,14 @@
 //Directory Tree Generator Function
-var version = 'v2.2.1'
+var version = 'v2.3.1'
 /* Version history:
+ *
+ * v2.3.1:
+ *   Create File if not already created
+ *
+ * v2.3:
+ *   Re-use the same file instead of deleting and recreating it.
+ *       Should fix most if not all of the daily Failure updates
+ *
  * v2.2.1:
  *   Fix accidental file deletion
  *
@@ -31,23 +39,19 @@ function onTime() {
 
     //delete previous files in drive
     var delFiles = odir.getFilesByName(outFnlName)
-    while (delFiles.hasNext()) {
+    if(delFiles.hasNext()) {
         var elem = delFiles.next();
-        deleteFile(elem.getId());
+        var doc = DocumentApp.openById(elem.getId());
+        var docbody = doc.getBody();
+        docbody.setText(blob.getDataAsString())
     }
-
-    //delete files from my drive added by google docs
-    var delFiles = mdir.getFilesByName(outFnlName)
-    while (delFiles.hasNext()) {
-        var elem = delFiles.next();
-        deleteFile(elem.getId());
+    else {
+        var doc = DocumentApp.create(outFnlName);
+        odir.addFile(DriveApp.getFileById(doc.getId()));
+        var docbody = doc.getBody();
+        docbody.setText(blob.getDataAsString());
     }
-
-    //var outFnl = rdir.createFile(blob.setName(outFnlName));
-    var doc = DocumentApp.create(outFnlName);
-    odir.addFile(DriveApp.getFileById(doc.getId()));
-    var docbody = doc.getBody();
-    docbody.setText(blob.getDataAsString());
+    return;
 }
 
 function dirWalk(blob, folder, depth) {
@@ -125,9 +129,15 @@ function append(blob, str) {
     return blob.setDataFromString(blob.getDataAsString() + str + '\n');
 }
 
+
 function deleteFile(fileID) {
     // Hard deletes a file. Does NOT move it to trash or out of the Folder
     // File Gets Stright up Axed Yo
     // http://stackoverflow.com/questions/14241237/google-apps-script-how-to-delete-a-file-in-google-drive
-    return Drive.Files.remove(fileID);
+    try {
+        return Drive.Files.remove(fileID);
+    }
+    catch(err){
+        return DriveApp.getFileById(fileID).setTrashed(true)
+    }
 }
